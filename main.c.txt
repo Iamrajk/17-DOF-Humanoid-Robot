@@ -1,0 +1,78 @@
+#include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
+
+// Create the PCA9685 object
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
+
+// Servo configuration
+#define SERVO_MIN 150 // Minimum pulse length count (0°)
+#define SERVO_MAX 600 // Maximum pulse length count (180°)
+
+// Servo channels
+#define SERVO7 0 // Channel 0
+#define SERVO8 1 // Channel 1
+#define SERVO9 2 // Channel 2
+#define SERVO2 3 // Channel 3
+#define SERVO3 4 // Channel 4
+#define SERVO4 5 // Channel 5
+#define SERVO11 6 // Channel 6
+#define SERVO12 7 // Channel 7
+
+void setup() {
+  Serial.begin(9600);
+  Serial.println("STM32 Nucleo: Move Servos to Mean Positions");
+
+  pwm.begin();
+  pwm.setPWMFreq(50); // Set frequency to 50 Hz
+}
+
+void loop(){
+  // Move servos to their respective mean positions
+  setServoAngle(SERVO7, 10); // Channel 0 to 60°
+  setServoAngle(SERVO2, 10); // Channel 3 to 60°
+  setServoAngle(SERVO8, 0); // Channel 1 to 90°
+  setServoAngle(SERVO3, 0); // Channel 4 to 90°
+  setServoAngle(SERVO9, 5); // Channel 2 to 45°
+  setServoAngle(SERVO4, 5); // Channel 5 to 45°
+
+  delay(5000); // Keep servos in position for 5 seconds
+
+  // Continuously move Servo 11 and Servo 12
+  while (true) {
+    // Move Servo 11 from 45° to 135° and Servo 12 from 135° to 45° simultaneously
+    moveServosSimultaneously(SERVO11, 45, 135, SERVO12, 45, 135);
+    delay(1000); // Wait for 1 second
+
+    // Move Servo 11 from 135° to 45° and Servo 12 from 45° to 135° simultaneously
+    moveServosSimultaneously(SERVO11, 135, 45, SERVO12, 135, 45);
+    delay(1000); // Wait for 1 second
+  }
+}
+
+
+// Function to move two servos simultaneously
+void moveServosSimultaneously(uint8_t servo1, int startAngle1, int endAngle1, uint8_t servo2, int startAngle2, int endAngle2) {
+  int step1 = (startAngle1 < endAngle1) ? 1 : -1; // Determine step direction for Servo 1
+  int step2 = (startAngle2 < endAngle2) ? 1 : -1; // Determine step direction for Servo 2
+
+  int angle1 = startAngle1;
+  int angle2 = startAngle2;
+
+  while (angle1 != endAngle1 + step1 || angle2 != endAngle2 + step2) {
+    if (angle1 != endAngle1 + step1) {
+      setServoAngle(servo1, angle1);
+      angle1 += step1; // Update Servo 1 angle
+    }
+    if (angle2 != endAngle2 + step2) {
+      setServoAngle(servo2, angle2);
+      angle2 += step2; // Update Servo 2 angle
+    }
+    delay(40); // Small delay for smooth simultaneous movement
+  }
+}
+
+// Function to set servo angle
+void setServoAngle(uint8_t servo, int angle) {
+  int pulse = map(angle, 0, 180, SERVO_MIN, SERVO_MAX); // Map angle to pulse width
+  pwm.setPWM(servo, 0, pulse);
+}
